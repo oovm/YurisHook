@@ -7,17 +7,19 @@ mod convert;
 mod display;
 
 /// The result type of this crate.
-pub type Result<T> = std::result::Result<T, ExampleError>;
+pub type Result<T> = std::result::Result<T, YuriError>;
 
-/// A boxed error kind, wrapping an [ExampleErrorKind].
+/// A boxed error kind, wrapping an [YuriErrorKind].
 #[derive(Clone)]
-pub struct ExampleError {
-    kind: Box<ExampleErrorKind>,
+pub struct YuriError {
+    kind: Box<YuriErrorKind>,
 }
 
-/// The kind of [ExampleError].
+/// The kind of [YuriError].
 #[derive(Debug, Copy, Clone)]
-pub enum ExampleErrorKind {
+pub enum YuriErrorKind {
+    GameNotFound,
+    GameNotStart,
     /// An unknown error.
     UnknownError,
 }

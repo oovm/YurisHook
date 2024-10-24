@@ -14,17 +14,10 @@ edition = "2021"
 exclude = ["package.json", "tests/**"]
 
 [lib]
-name = "gamemdx"
-path = "src/lib.rs"
-crate-type = ["cdylib"]
-
-[[bin]]
-name = "gamemdx"
-path = "src/main.rs"
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-ctor = "0.2.8"
-dll-syringe = "0.15.2"
+#ctor = "0.2.8"
 
 [dev-dependencies]
 

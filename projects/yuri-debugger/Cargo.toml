@@ -14,6 +14,16 @@ edition = "2021"
 exclude = ["package.json", "tests/**"]
 
 [dependencies]
+dll-syringe = "0.15.2"
+
+
+[dependencies.yuri_hooks]
+version = "*"
+path = "../yuri-hooks"
+
+
+
+
 
 [dev-dependencies]
 

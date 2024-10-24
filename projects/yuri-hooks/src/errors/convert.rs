@@ -1,7 +1,7 @@
 use super::*;
 
-impl From<ExampleErrorKind> for ExampleError {
-    fn from(value: ExampleErrorKind) -> Self {
+impl From<YuriErrorKind> for YuriError {
+    fn from(value: YuriErrorKind) -> Self {
         Self { kind: Box::new(value) }
     }
 }
