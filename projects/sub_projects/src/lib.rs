@@ -7,3 +7,8 @@
 mod errors;
 
 pub use crate::errors::{ExampleErrorKind, Result, ExampleError};
+
+#[ctor::ctor]
+fn ctor() {
+    println!("我是一个dll")
+}

@@ -1,5 +1,5 @@
 [package]
-name = "sub_projects"
+name = "yuri_hooks"
 publish = false
 version = "0.0.0"
 authors = ["Aster <192607617@qq.com>"]
@@ -13,7 +13,19 @@ license = "MPL-2.0"
 edition = "2021"
 exclude = ["package.json", "tests/**"]
 
+[lib]
+name = "yuri_hooks"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[[bin]]
+name = "gamemdx"
+path = "src/main.rs"
+
 [dependencies]
+ctor = "0.2.8"
+sysinfo = "0.29.11"
+dll-syringe = "0.15.2"
 
 [dev-dependencies]
 
