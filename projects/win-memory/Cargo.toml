@@ -1,0 +1,29 @@
+[package]
+name = "win-memory"
+version = "0.0.0"
+authors = ["Aster <192607617@qq.com>"]
+description = "..."
+categories = ["rust-patterns"]
+homepage = "https://github.com/oovm/RustTemplate"
+repository = "https://github.com/oovm/RustTemplate"
+documentation = "https://docs.rs/sub_projects"
+readme = "readme.md"
+license = "MPL-2.0"
+edition = "2021"
+exclude = ["package.json", "tests/**"]
+
+[dependencies]
+regex = "1.8.1"
+winapi = {version = "^0.3.9", features = ["handleapi","tlhelp32", "memoryapi", "processthreadsapi", "psapi", "winbase", "wow64apiset"]}
+
+[dependencies.windows]
+version = "0.58.0"
+features = [
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading"
+]
+
+[package.metadata.docs.rs]
+default-target = "x86_64-pc-windows-msvc"
+targets = ["x86_64-pc-windows-msvc", "i686-pc-windows-msvc"]

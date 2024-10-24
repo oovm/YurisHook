@@ -1,3 +1,7 @@
+#![feature(coroutines)]
+#![feature(gen_blocks)]
+#![feature(coroutine_trait)]
+#![feature(iter_from_coroutine)]
 // #![deny(missing_debug_implementations, missing_copy_implementations)]
 #![warn(missing_docs, rustdoc::missing_crate_level_docs)]
 #![doc = include_str!("../readme.md")]
@@ -9,7 +13,7 @@ mod errors;
 
 use get_last_error::Win32Error;
 use proc_mem::{ProcMemError, Process};
-use std::os::windows::ffi::OsStringExt;
+use std::{iter::from_coroutine, ops::Coroutine, os::windows::ffi::OsStringExt, pin::Pin};
 use windows::{
     Win32::{
         Foundation::{CloseHandle, HANDLE},
@@ -24,7 +28,7 @@ use windows::{
             },
         },
     },
-    core::{Error, PWSTR},
+    core::{Error, HRESULT, PWSTR},
 };
 // use std::arch::asm;
 // use std::ffi::{c_char, CString};
@@ -120,28 +124,36 @@ unsafe fn get_process_name_by_pid(pid: u32) -> windows::core::Result<String> {
     Ok(s)
 }
 
-#[test]
-fn test() {
-    unsafe {
-        let h_snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0).unwrap();
-        if h_snap.is_invalid() {
-            panic!("{}", Error::from_win32())
-        }
-        let mut pe32 = PROCESSENTRY32W::default();
-        pe32.dwSize = size_of::<PROCESSENTRY32W>() as u32;
-        // skip first, always `[System Process]`
-        Process32FirstW(h_snap, &mut pe32).unwrap();
-        if h_snap.is_invalid() {
-            panic!("{}", Error::from_win32())
-        }
-        while let Ok(_) = Process32NextW(h_snap, &mut pe32) {
-            if h_snap.is_invalid() {
-                panic!("{}", Error::from_win32())
-            }
-            let process_name = String::from_utf16_lossy(&pe32.szExeFile);
+unsafe fn make_pe32_pair() -> std::result::Result<(HANDLE, PROCESSENTRY32W), Error> {
+    let h_snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)?;
+    if h_snap.is_invalid() {
+        return Err(Error::from_win32());
+    }
+    let mut pe32 = PROCESSENTRY32W { dwSize: size_of::<PROCESSENTRY32W>() as u32, ..Default::default() };
+    Ok((h_snap, pe32))
+}
 
-            println!("{}", process_name);
-            Process32NextW(h_snap, &mut pe32).unwrap();
+unsafe fn get_process_by_name(name: &str) -> windows::core::Result<PROCESSENTRY32W> {
+    let (h_snap, mut pe32) = make_pe32_pair()?;
+    // skip first, always `[System Process]`
+    Process32FirstW(h_snap, &mut pe32)?;
+    if h_snap.is_invalid() {
+        return Err(Error::from_win32());
+    }
+    while let Ok(_) = Process32NextW(h_snap, &mut pe32) {
+        if h_snap.is_invalid() {
+            return Err(Error::from_win32());
+        }
+        let full_name = String::from_utf16_lossy(&pe32.szExeFile);
+        if full_name.contains(name) {
+            return Ok(pe32);
         }
     }
+    Err(Error::new(HRESULT::default(), "Couldn't find process name"))
+}
+
+#[test]
+fn test() {
+    unsafe { println!("{:#?}", get_process_by_name("gamemd.exe")) }
+    Process::with_name().unwrap().process_base_address
 }
