@@ -14,7 +14,7 @@ edition = "2021"
 exclude = ["package.json", "tests/**"]
 
 [lib]
-name = "yuri_hooks"
+name = "gamemdx"
 path = "src/lib.rs"
 crate-type = ["cdylib"]
 
