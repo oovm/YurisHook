@@ -43,7 +43,7 @@ impl Module {
             module_name: mname,
             module_path: mpath,
             process_id: pid,
-            process_iswow64: proc.iswow64(),
+            process_iswow64: proc.is_wow64(),
             module_baseaddr: mbaseaddr,
             module_basesize: mbasesize,
             module_data: proc.read_module(mbaseaddr, mbasesize).unwrap_or_default(),

@@ -42,8 +42,8 @@ impl WindowsProcess {
     /// returns the desired process with the provided pid
     ///
     /// ```rust
-    /// use win_memory::{ProcMemError, WindowsProcess};
-    /// let process: Result<WindowsProcess, ProcMemError> = WindowsProcess::with_pid(12345);
+    /// use win_memory::{MemoryError, WindowsProcess};
+    /// let process: Result<WindowsProcess, MemoryError> = WindowsProcess::with_pid(12345);
     /// ```
     pub fn with_pid(pid: u32) -> Result<Self, MemoryError> {
         let h_snap = create_snapshot(TH32CS_SNAPPROCESS, 0)?;
@@ -63,7 +63,7 @@ impl WindowsProcess {
                 };
 
                 proc.base_address = proc.module(&process_name)?.base_address();
-                proc.is_wow64 = proc.iswow64();
+                proc.is_wow64 = proc.is_wow64();
 
                 return Ok(proc);
             }
@@ -98,7 +98,7 @@ impl WindowsProcess {
                 };
 
                 proc.base_address = proc.module(&process_name).unwrap().base_address();
-                proc.is_wow64 = proc.iswow64();
+                proc.is_wow64 = proc.is_wow64();
 
                 return Ok(proc);
             }
@@ -113,8 +113,8 @@ impl WindowsProcess {
     /// returns a Vec<Process> where all processes share the provided name
     ///
     /// ```rust
-    /// use win_memory::{ProcMemError, WindowsProcess};
-    /// let processes: Result<Vec<WindowsProcess>, ProcMemError> =
+    /// use win_memory::{MemoryError, WindowsProcess};
+    /// let processes: Result<Vec<WindowsProcess>, MemoryError> =
     ///     WindowsProcess::all_with_name("process.exe");
     /// ```
     pub fn all_with_name(name: &str) -> Result<Vec<WindowsProcess>, MemoryError> {
@@ -135,7 +135,7 @@ impl WindowsProcess {
                 };
 
                 proc.base_address = proc.module(&process_name)?.base_address();
-                proc.is_wow64 = proc.iswow64();
+                proc.is_wow64 = proc.is_wow64();
 
                 results.push(proc);
             }
@@ -154,9 +154,9 @@ impl WindowsProcess {
     /// returns an instance of module including its base address in memory
     ///
     /// ```rust
-    /// use win_memory::{Module, ProcMemError, WindowsProcess};
+    /// use win_memory::{MemoryError, Module, WindowsProcess};
     /// let process = WindowsProcess::with_name("process.exe")?;
-    /// let module: Result<Module, ProcMemError> = process.module("module.dll");
+    /// let module: Result<Module, MemoryError> = process.module("module.dll");
     /// ```
     pub fn module(&self, name: &str) -> Result<Module, MemoryError> {
         let h_snap = create_snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, *self.pid())?;
@@ -215,53 +215,54 @@ impl WindowsProcess {
     /// This function takes a type and the address to read.
     /// On success the read value will be returned.
     /// ```rust
-    /// use win_memory::{Module, ProcMemError, WindowsProcess};
+    /// use win_memory::{MemoryError, Module, WindowsProcess};
     /// let chrome = WindowsProcess::with_name("chrome.exe")?;
     /// let module = chrome.module("kernel32.dll")?;
-    /// let read_value: Result<T, ProcMemError> = chrome.read_mem::<T>(module.base_address() + 0x1337);
+    /// let read_value: Result<T, MemoryError> =
+    ///     chrome.read_data_absolute::<T>(module.base_address() + 0x1337);
     /// ```
-    pub fn read_mem<T: Default>(&self, address: usize) -> Result<T, MemoryError> {
+    pub fn read_data_absolute<T: Default>(&self, offset: usize) -> Result<T, MemoryError> {
         let mut out: T = Default::default();
-
         unsafe {
-            return if ReadProcessMemory(
-                self.handle.0,
-                address as *const _,
+            ReadProcessMemory(
+                self.handle.wrap,
+                offset as *const _,
                 &mut out as *mut T as *mut _,
                 std::mem::size_of::<T>(),
                 None,
-            )
-            .is_err()
-            {
-                println!("ReadProcessMemory failed. Error: {:?}", std::io::Error::last_os_error());
-                return Err(MemoryError::ReadMemoryError);
-            }
-            else {
-                Ok(out)
-            };
+            )?;
         }
+        Ok(out)
+    }
+
+    pub fn read_data<T: Default>(&self, offset: usize) -> Result<T, MemoryError> {
+        self.read_data_absolute(self.base_address + offset)
     }
 
     /// This function takes a type and a Vec of addresses/offsets,
     /// the first entry being the base address to start from.
     /// On success the read value will be returned.
     /// ```rust
-    /// use win_memory::{WindowsProcess, Module, ProcMemError};
+    /// use win_memory::{MemoryError, Module, WindowsProcess};
     /// let chrome = WindowsProcess::with_name("chrome.exe")?;
     /// let module = chrome.module("kernel32.dll")?;
-    /// let chain: Vec<usize> = vec![module.base_address(), 0xDEA964, 0x100]
-    /// let read_value: Result<T, ProcMemError> = chrome.read_mem_chain::<T>(chain);
+    /// let chain: Vec<usize> = vec![module.base_address(), 0xDEA964, 0x100];
+    /// let read_value: Result<T, MemoryError> = chrome.read_mem_chain::<T>(chain);
     /// ```
     pub fn read_mem_chain<T: Default>(&self, mut chain: Vec<usize>) -> Result<T, MemoryError> {
         let mut address = chain.remove(0);
 
         while chain.len() != 1 {
             address += chain.remove(0);
-            address =
-                if self.is_wow64 { self.read_mem::<u32>(address)? as usize } else { self.read_mem::<u64>(address)? as usize }
+            address = if self.is_wow64 {
+                self.read_data_absolute::<u32>(address)? as usize
+            }
+            else {
+                self.read_data_absolute::<u64>(address)? as usize
+            }
         }
 
-        let ret = self.read_mem::<T>(address + chain.remove(0))?;
+        let ret = self.read_data_absolute::<T>(address + chain.remove(0))?;
 
         return Ok(ret);
     }
@@ -270,19 +271,23 @@ impl WindowsProcess {
     /// the first entry being the base address to start from.
     /// On success the address at the end of the chain will be returned.
     /// ```rust
-    /// use win_memory::{WindowsProcess, Module, ProcMemError};
+    /// use win_memory::{MemoryError, Module, WindowsProcess};
     /// let some_game = WindowsProcess::with_name("some_game.exe")?;
     /// let module = some_game.module("client.dll")?;
-    /// let chain: Vec<usize> = vec![module.base_address(), 0xDEA964, 0x100]
-    /// let desired_address: Result<usize, ProcMemError> = chrome.read_ptr_chain(chain);
+    /// let chain: Vec<usize> = vec![module.base_address(), 0xDEA964, 0x100];
+    /// let desired_address: Result<usize, MemoryError> = chrome.read_ptr_chain(chain);
     /// ```
     pub fn read_ptr_chain(&self, mut chain: Vec<usize>) -> Result<usize, MemoryError> {
         let mut address = chain.remove(0);
 
         while chain.len() != 1 {
             address += chain.remove(0);
-            address =
-                if self.is_wow64 { self.read_mem::<u32>(address)? as usize } else { self.read_mem::<u64>(address)? as usize }
+            address = if self.is_wow64 {
+                self.read_data_absolute::<u32>(address)? as usize
+            }
+            else {
+                self.read_data_absolute::<u64>(address)? as usize
+            }
         }
 
         return Ok(address + chain.remove(0));
@@ -299,8 +304,14 @@ impl WindowsProcess {
     /// ```
     pub fn write_mem<T: Default>(&self, address: usize, mut value: T) -> bool {
         unsafe {
-            WriteProcessMemory(self.handle.0, address as *mut _, &mut value as *mut T as *mut _, std::mem::size_of::<T>(), None)
-                .is_ok()
+            WriteProcessMemory(
+                self.handle.wrap,
+                address as *mut _,
+                &mut value as *mut T as *mut _,
+                std::mem::size_of::<T>(),
+                None,
+            )
+            .is_ok()
         }
     }
 
@@ -318,26 +329,27 @@ impl WindowsProcess {
     /// );
     /// ```
     pub fn write_bytes(&self, address: usize, buf: *mut u8, size: usize) -> bool {
-        unsafe { WriteProcessMemory(self.handle.0, address as *mut _, buf as *mut _, size, None).is_ok() }
+        unsafe { WriteProcessMemory(self.handle.wrap, address as *mut _, buf as *mut _, size, None).is_ok() }
     }
 
     /// C style method to read memory
     /// Third argument is the multiplicator of the Size of "T"
     /// for example if someone would want to read multiple bytes
     /// ```rust
-    /// use win_memory::{WindowsProcess, Module}
+    /// use win_memory::{Module, WindowsProcess};
     /// let chrome = WindowsProcess::with_name("chrome.exe")?;
     /// let module = chrome.module("kernel32.dll")?;
     /// let mut value_buffer: i32 = 0;
     /// if !chrome.read_ptr(&mut value_buffer, module.base_address() + 0x1337, None) {
     ///     println!("ReadMemory Failure");
-    /// } else {
+    /// }
+    /// else {
     ///     println!("ReadMemory Success");
     /// }
     /// ```
     pub fn read_ptr<T: Copy>(&self, buf: *mut T, address: usize) -> bool {
         unsafe {
-            ReadProcessMemory(self.handle.0, address as *const c_void, buf as *mut c_void, std::mem::size_of::<T>(), None)
+            ReadProcessMemory(self.handle.wrap, address as *const c_void, buf as *mut c_void, std::mem::size_of::<T>(), None)
                 .is_ok()
         }
     }
@@ -358,7 +370,7 @@ impl WindowsProcess {
     /// }
     /// ```
     pub fn read_bytes(&self, address: usize, buf: *mut u8, size: usize) -> bool {
-        unsafe { ReadProcessMemory(self.handle.0, address as *const c_void, buf as *mut c_void, size, None).is_ok() }
+        unsafe { ReadProcessMemory(self.handle.wrap, address as *const c_void, buf as *mut c_void, size, None).is_ok() }
     }
 
     /// Returns a string slice of the process name
@@ -370,12 +382,13 @@ impl WindowsProcess {
         &self.pid
     }
     // Determines whether the specified process is running under WOW64 or an Intel64 of x64 processor.
-    pub fn iswow64(&self) -> bool {
+    pub fn is_wow64(&self) -> bool {
         let mut tmp = BOOL::from(false);
-        unsafe { IsWow64Process(self.handle.0, &mut tmp) };
-        match tmp {
-            FALSE => false,
-            _ => true,
+        unsafe {
+            match IsWow64Process(self.handle.wrap, &mut tmp) {
+                Ok(_) => tmp.0.ne(&0),
+                Err(_) => false,
+            }
         }
     }
 
@@ -394,8 +407,14 @@ impl WindowsProcess {
         let mut out = vec![0u8; msize];
         let out_ptr = out.as_mut_ptr();
         unsafe {
-            if ReadProcessMemory(self.handle.0, address as *const c_void, out_ptr as *mut c_void, size_of::<u8>() * msize, None)
-                .is_err()
+            if ReadProcessMemory(
+                self.handle.wrap,
+                address as *const c_void,
+                out_ptr as *mut c_void,
+                size_of::<u8>() * msize,
+                None,
+            )
+            .is_err()
             {
                 Err(MemoryError::ReadMemoryError)
             }

@@ -1,26 +1,25 @@
 use crate::MemoryError;
-use std::{
-    fmt::{Debug, Formatter, Pointer},
-    ops::Deref,
-};
+use std::fmt::{Debug, Formatter, Pointer};
 use windows::{
     Win32::{
-        Foundation::{CloseHandle, HANDLE, INVALID_HANDLE_VALUE},
+        Foundation::{CloseHandle, HANDLE},
         System::Threading::{OpenProcess, PROCESS_ALL_ACCESS, PROCESS_VM_READ, PROCESS_VM_WRITE},
     },
-    core::Error,
+    core::{Error, Param, ParamValue},
 };
 
 /// Wrapper around winapi HANDLE for automatic closing of the handle upon destruction
 
 #[derive(Clone)]
-pub struct Handle(pub HANDLE);
+pub struct Handle {
+    pub wrap: HANDLE,
+}
 
 impl Drop for Handle {
     fn drop(&mut self) {
         if self.is_valid() {
             unsafe {
-                match CloseHandle(self.0) {
+                match CloseHandle(self.wrap) {
                     Ok(_) => {}
                     Err(_) => {}
                 }
@@ -31,15 +30,24 @@ impl Drop for Handle {
 
 impl Debug for Handle {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Pointer::fmt(&self.0.0, f)
+        Pointer::fmt(&self.wrap.0, f)
+    }
+}
+
+impl Param<HANDLE> for Handle {
+    unsafe fn param(self) -> ParamValue<HANDLE> {
+        ParamValue::Owned(self.wrap)
     }
 }
 
 impl Handle {
+    pub fn new(handle: HANDLE) -> Self {
+        Handle { wrap: handle }
+    }
     /// if the wrapper contains a valid HANDLE this function returns true
     /// otherwise returns false
     pub fn is_valid(&self) -> bool {
-        !self.0.is_invalid()
+        !self.wrap.is_invalid()
     }
 
     pub unsafe fn full_access(pid: u32) -> Result<Self, MemoryError> {
@@ -49,7 +57,7 @@ impl Handle {
                     Err(MemoryError::GetHandleError { win32: Error::from_win32() })
                 }
                 else {
-                    Ok(Handle(h))
+                    Ok(Handle::new(h))
                 }
             }
             Err(e) => Err(MemoryError::GetHandleError { win32: e }),
@@ -63,7 +71,7 @@ impl Handle {
                     Err(MemoryError::GetHandleError { win32: Error::from_win32() })
                 }
                 else {
-                    Ok(Handle(h))
+                    Ok(Handle::new(h))
                 }
             }
             Err(e) => Err(MemoryError::GetHandleError { win32: e }),

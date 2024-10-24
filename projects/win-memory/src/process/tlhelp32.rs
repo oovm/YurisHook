@@ -40,20 +40,20 @@ pub fn create_me32() -> MODULEENTRY32W {
 }
 
 pub fn create_snapshot(flags: CREATE_TOOLHELP_SNAPSHOT_FLAGS, pid: u32) -> Result<Handle, MemoryError> {
-    let h_snap = Handle(unsafe { CreateToolhelp32Snapshot(flags, pid) }?);
+    let h_snap = Handle::new(unsafe { CreateToolhelp32Snapshot(flags, pid) }?);
     if h_snap.is_valid() { Ok(h_snap) } else { Err(MemoryError::CreateSnapshotFailure) }
 }
 
 pub fn process_first(h_snap: &Handle, pe32: &mut PROCESSENTRY32W) -> Result<(), MemoryError> {
-    unsafe { Process32FirstW(h_snap.0, pe32).map_err(|e| MemoryError::IterateSnapshotFailure { win32: e }) }
+    unsafe { Process32FirstW(h_snap.wrap, pe32).map_err(|e| MemoryError::IterateSnapshotFailure { win32: e }) }
 }
 pub fn process32next(h_snap: &Handle, pe32: &mut PROCESSENTRY32W) -> bool {
-    unsafe { Process32NextW(h_snap.0, pe32).is_ok() }
+    unsafe { Process32NextW(h_snap.wrap, pe32).is_ok() }
 }
 
 pub fn module32first(h_snap: &Handle, me32: &mut MODULEENTRY32W) -> Result<(), MemoryError> {
-    unsafe { Module32FirstW(h_snap.0, me32).map_err(|e| MemoryError::IterateSnapshotFailure { win32: e }) }
+    unsafe { Module32FirstW(h_snap.wrap, me32).map_err(|e| MemoryError::IterateSnapshotFailure { win32: e }) }
 }
 pub fn module32next(h_snap: &Handle, me32: &mut MODULEENTRY32W) -> bool {
-    unsafe { Module32NextW(h_snap.0, me32).is_ok() }
+    unsafe { Module32NextW(h_snap.wrap, me32).is_ok() }
 }

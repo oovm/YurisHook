@@ -1,7 +1,4 @@
-use dll_syringe::{
-    Syringe,
-    process::{BorrowedProcessModule, OwnedProcess},
-};
+use dll_syringe::{Syringe, process::OwnedProcess};
 use yuri_hooks::{YuriError, YuriErrorKind};
 
 fn main() -> Result<(), YuriError> {

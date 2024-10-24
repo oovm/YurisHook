@@ -10,18 +10,14 @@
 
 mod errors;
 // mod game_strings;
-
-use std::{iter::from_coroutine, ops::Coroutine, os::windows::ffi::OsStringExt, pin::Pin};
-use win_memory::WindowsProcess;
 use windows::{
     Win32::{
         Foundation::{CloseHandle, HANDLE},
         System::{
             Diagnostics::ToolHelp::{
-                CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW, TH32CS_SNAPMODULE32,
-                TH32CS_SNAPPROCESS,
+                CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW, TH32CS_SNAPPROCESS,
             },
-            ProcessStatus::{EnumProcesses, GetModuleFileNameExW},
+            ProcessStatus::EnumProcesses,
             Threading::{
                 OpenProcess, PROCESS_NAME_NATIVE, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ, QueryFullProcessImageNameW,
             },
