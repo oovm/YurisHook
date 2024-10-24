@@ -18,8 +18,13 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 get-last-error = "0.1.1"
-proc_mem = "0.1.6"
+#proc_mem = "0.1.6"
 retour = "0.4.0-alpha.2"
+
+[dependencies.win-memory]
+version = "*"
+path = "../win-memory"
+
 
 [dependencies.windows]
 version = "0.58.0"

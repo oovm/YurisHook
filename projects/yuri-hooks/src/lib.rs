@@ -11,9 +11,8 @@
 mod errors;
 // mod game_strings;
 
-use get_last_error::Win32Error;
-use proc_mem::{ProcMemError, Process};
 use std::{iter::from_coroutine, ops::Coroutine, os::windows::ffi::OsStringExt, pin::Pin};
+use win_memory::Process;
 use windows::{
     Win32::{
         Foundation::{CloseHandle, HANDLE},
@@ -154,5 +153,6 @@ unsafe fn get_process_by_name(name: &str) -> windows::core::Result<PROCESSENTRY3
 
 #[test]
 fn test() {
-    unsafe { println!("{:#?}", get_process_by_name("gamemd.exe")) }
+    let win = Process::with_name("gamemd.exe").unwrap();
+    println!("{:#?}", win);
 }
