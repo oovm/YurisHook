@@ -9,6 +9,7 @@
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/oovm/shape-rs/dev/projects/images/Trapezohedron.svg")]
 
 mod errors;
+pub mod helpers;
 // mod game_strings;
 use crate::crate_hooks::PowerUps;
 use win_memory::WindowsProcess;
