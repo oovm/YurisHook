@@ -155,5 +155,4 @@ unsafe fn get_process_by_name(name: &str) -> windows::core::Result<PROCESSENTRY3
 #[test]
 fn test() {
     unsafe { println!("{:#?}", get_process_by_name("gamemd.exe")) }
-    Process::with_name().unwrap().process_base_address
 }

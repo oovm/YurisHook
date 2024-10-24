@@ -1,12 +1,9 @@
-use std::ops::Deref;
-
-use winapi::um::{
-    handleapi::{CloseHandle, INVALID_HANDLE_VALUE},
-    processthreadsapi::OpenProcess,
-    winnt::{HANDLE, PROCESS_ALL_ACCESS, PROCESS_VM_READ, PROCESS_VM_WRITE},
-};
-
 use crate::MemoryError;
+use std::ops::Deref;
+use windows::Win32::{
+    Foundation::{CloseHandle, HANDLE, INVALID_HANDLE_VALUE},
+    System::Threading::{OpenProcess, PROCESS_ALL_ACCESS, PROCESS_VM_READ, PROCESS_VM_WRITE},
+};
 
 /// Wrapper around winapi HANDLE for automatic closing of the handle upon destruction
 
@@ -38,9 +35,9 @@ impl Handle {
     /// the function tries to OpenProcess with PROCESS_VM_READ & PROCESS_VM_WRITE
     /// if that fails too the function returns an ProcMemError
     pub fn read_write(pid: u32) -> Result<Self, MemoryError> {
-        let mut h = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, pid) };
+        let mut h = unsafe { OpenProcess(PROCESS_ALL_ACCESS, false, pid)? };
         if h == INVALID_HANDLE_VALUE {
-            h = unsafe { OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE, 0, pid) };
+            h = unsafe { OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE, false, pid)? };
             if h == INVALID_HANDLE_VALUE { Err(MemoryError::GetHandleError) } else { Ok(Handle(h)) }
         }
         else {

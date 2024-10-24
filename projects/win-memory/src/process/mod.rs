@@ -2,23 +2,20 @@ mod handle;
 mod module;
 mod tlhelp32;
 
-use std::{mem::size_of, os::windows::process::CommandExt, process::Command};
-
 use crate::MemoryError;
 use handle::Handle;
 pub use module::{Module, Signature};
+use std::{ffi::c_void, mem::size_of, os::windows::process::CommandExt, process::Command};
 use tlhelp32::*;
-
-use winapi::{
-    shared::{
-        basetsd::SIZE_T,
-        minwindef::{BOOL, FALSE, LPCVOID, LPVOID, PBOOL},
-    },
-    um::{
-        memoryapi::{ReadProcessMemory, VirtualProtect, WriteProcessMemory},
-        tlhelp32::{TH32CS_SNAPMODULE, TH32CS_SNAPMODULE32, TH32CS_SNAPPROCESS},
-        winbase::CREATE_NO_WINDOW,
-        wow64apiset::IsWow64Process,
+use windows::Win32::{
+    Foundation::BOOL,
+    System::{
+        Diagnostics::{
+            Debug::{ReadProcessMemory, WriteProcessMemory},
+            ToolHelp::{TH32CS_SNAPMODULE, TH32CS_SNAPMODULE32, TH32CS_SNAPPROCESS},
+        },
+        Memory::{PAGE_PROTECTION_FLAGS, VirtualProtect},
+        Threading::{CREATE_NO_WINDOW, IsWow64Process},
     },
 };
 
@@ -47,7 +44,7 @@ impl Process {
     pub fn with_pid(pid: u32) -> Result<Self, MemoryError> {
         let h_snap = create_snapshot(TH32CS_SNAPPROCESS, 0)?;
 
-        let mut pe32 = new_pe32w();
+        let mut pe32 = safe_pe32();
 
         if !process32first(&h_snap, &mut pe32) {
             return Err(MemoryError::IterateSnapshotFailure);
@@ -87,7 +84,7 @@ impl Process {
     pub fn with_name(name: &str) -> Result<Self, MemoryError> {
         let h_snap = create_snapshot(TH32CS_SNAPPROCESS, 0)?;
 
-        let mut pe32 = new_pe32w();
+        let mut pe32 = safe_pe32();
 
         if !process32first(&h_snap, &mut pe32) {
             return Err(MemoryError::IterateSnapshotFailure);
@@ -128,7 +125,7 @@ impl Process {
 
         let h_snap = create_snapshot(TH32CS_SNAPPROCESS, 0)?;
 
-        let mut pe32 = new_pe32w();
+        let mut pe32 = safe_pe32();
 
         if !process32first(&h_snap, &mut pe32) {
             return Err(MemoryError::IterateSnapshotFailure);
@@ -212,7 +209,7 @@ impl Process {
             .arg("/PID")
             .arg(&self.process_id.to_string())
             .arg("/F")
-            .creation_flags(CREATE_NO_WINDOW)
+            .creation_flags(CREATE_NO_WINDOW.0)
             .output()
             .expect("");
 
@@ -243,8 +240,9 @@ impl Process {
                 address as *const _,
                 &mut out as *mut T as *mut _,
                 std::mem::size_of::<T>(),
-                std::ptr::null_mut::<SIZE_T>(),
-            ) == FALSE
+                std::ptr::null_mut::<usize>(),
+            )
+            .is_err()
             {
                 println!("ReadProcessMemory failed. Error: {:?}", std::io::Error::last_os_error());
                 return Err(MemoryError::ReadMemoryError);
@@ -317,8 +315,9 @@ impl Process {
                 address as *mut _,
                 &mut value as *mut T as *mut _,
                 std::mem::size_of::<T>(),
-                std::ptr::null_mut::<SIZE_T>(),
-            ) != FALSE
+                std::ptr::null_mut::<usize>(),
+            )
+            .is_ok()
         }
     }
 
@@ -337,13 +336,8 @@ impl Process {
     /// ```
     pub fn write_bytes(&self, address: usize, buf: *mut u8, size: usize) -> bool {
         unsafe {
-            WriteProcessMemory(
-                *self.process_handle,
-                address as *mut _,
-                buf as *mut _,
-                size as SIZE_T,
-                std::ptr::null_mut::<SIZE_T>(),
-            ) != FALSE
+            WriteProcessMemory(*self.process_handle, address as *mut _, buf as *mut _, size, std::ptr::null_mut::<usize>())
+                .is_ok()
         }
     }
 
@@ -365,11 +359,12 @@ impl Process {
         unsafe {
             ReadProcessMemory(
                 *self.process_handle,
-                address as LPCVOID,
-                buf as *mut T as LPVOID,
-                std::mem::size_of::<T>() as SIZE_T,
-                std::ptr::null_mut::<SIZE_T>(),
-            ) != FALSE
+                address as *const c_void,
+                buf as *mut T as *mut c_void,
+                std::mem::size_of::<T>(),
+                std::ptr::null_mut::<usize>(),
+            )
+            .is_ok()
         }
     }
 
@@ -391,11 +386,12 @@ impl Process {
         unsafe {
             ReadProcessMemory(
                 *self.process_handle,
-                address as LPCVOID,
-                buf as LPVOID,
-                size as SIZE_T,
-                std::ptr::null_mut::<SIZE_T>(),
-            ) != FALSE
+                address as *const c_void,
+                buf as *mut c_void,
+                size,
+                std::ptr::null_mut::<usize>(),
+            )
+            .is_ok()
         }
     }
 
@@ -409,8 +405,8 @@ impl Process {
     }
     // Determines whether the specified process is running under WOW64 or an Intel64 of x64 processor.
     pub fn iswow64(&self) -> bool {
-        let mut tmp: BOOL = 0;
-        unsafe { IsWow64Process(*self.process_handle, &mut tmp as PBOOL) };
+        let mut tmp = BOOL::from(false);
+        unsafe { IsWow64Process(*self.process_handle, &mut tmp) };
         match tmp {
             FALSE => false,
             _ => true,
@@ -418,15 +414,14 @@ impl Process {
     }
 
     /// Returns "TRUE" specified Memory Protection was changed successfully
-    pub fn protect_mem(&self, address: usize, size: usize, new_protect: u32, old_protect: *mut u32) -> bool {
-        let mut _result: BOOL = FALSE;
-        unsafe {
-            _result = VirtualProtect(address as LPVOID, size, new_protect, old_protect);
-        }
-        match _result {
-            FALSE => false,
-            _ => true,
-        }
+    pub fn protect_mem(
+        &self,
+        address: usize,
+        size: usize,
+        new_protect: PAGE_PROTECTION_FLAGS,
+        old_protect: &mut PAGE_PROTECTION_FLAGS,
+    ) -> bool {
+        unsafe { VirtualProtect(address as *mut c_void, size, new_protect, old_protect).is_ok() }
     }
 
     fn read_module(&self, address: usize, msize: usize) -> Result<Vec<u8>, MemoryError> {
@@ -435,11 +430,12 @@ impl Process {
         unsafe {
             if ReadProcessMemory(
                 *self.process_handle,
-                address as LPCVOID,
-                out_ptr as LPVOID,
-                size_of::<u8>() as SIZE_T * msize,
-                std::ptr::null_mut::<SIZE_T>(),
-            ) == FALSE
+                address as *const c_void,
+                out_ptr as *mut c_void,
+                size_of::<u8>() * msize,
+                std::ptr::null_mut::<usize>(),
+            )
+            .is_err()
             {
                 Err(MemoryError::ReadMemoryError)
             }

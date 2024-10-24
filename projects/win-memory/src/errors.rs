@@ -1,3 +1,5 @@
+use windows::core::Error;
+
 #[derive(Debug)]
 pub enum MemoryError {
     /// Could not take a snapshot of the processes/modules
@@ -22,4 +24,10 @@ pub enum MemoryError {
     AddressOutOfBounds,
     /// Could not read the found address and add it to the result
     RIPRelativeFailed,
+}
+
+impl From<Error> for MemoryError {
+    fn from(value: Error) -> Self {
+        todo!()
+    }
 }

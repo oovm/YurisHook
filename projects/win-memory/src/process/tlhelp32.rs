@@ -1,18 +1,16 @@
+use crate::{MemoryError, process::Handle};
 use std::mem::size_of;
-
-use winapi::{
-    shared::minwindef::MAX_PATH,
-    um::tlhelp32::{
-        CreateToolhelp32Snapshot, LPMODULEENTRY32W, LPPROCESSENTRY32W, MAX_MODULE_NAME32, MODULEENTRY32W, Module32FirstW,
+use windows::Win32::{
+    Foundation::{HMODULE, MAX_PATH},
+    System::Diagnostics::ToolHelp::{
+        CREATE_TOOLHELP_SNAPSHOT_FLAGS, CreateToolhelp32Snapshot, MAX_MODULE_NAME32, MODULEENTRY32W, Module32FirstW,
         Module32NextW, PROCESSENTRY32W, Process32FirstW, Process32NextW,
     },
 };
 
-use crate::{MemoryError, process::Handle};
-
 /// Wrappers around tl32help functions to work a little cleaner
 
-pub fn new_pe32w() -> PROCESSENTRY32W {
+pub fn safe_pe32() -> PROCESSENTRY32W {
     PROCESSENTRY32W {
         dwSize: size_of::<PROCESSENTRY32W>() as u32,
         cntUsage: 0,
@@ -35,27 +33,27 @@ pub fn new_me32w() -> MODULEENTRY32W {
         ProccntUsage: 0,
         modBaseAddr: std::ptr::null_mut(),
         modBaseSize: 0,
-        hModule: std::ptr::null_mut(),
-        szModule: [0; MAX_MODULE_NAME32 + 1],
-        szExePath: [0; MAX_PATH],
+        hModule: HMODULE::default(),
+        szModule: [0; MAX_MODULE_NAME32 as usize + 1],
+        szExePath: [0; MAX_PATH as usize],
     }
 }
 
-pub fn create_snapshot(flags: u32, pid: u32) -> Result<Handle, MemoryError> {
-    let h_snap = Handle(unsafe { CreateToolhelp32Snapshot(flags, pid) });
-    return if h_snap.is_valid() { Ok(h_snap) } else { Err(MemoryError::CreateSnapshotFailure) };
+pub fn create_snapshot(flags: CREATE_TOOLHELP_SNAPSHOT_FLAGS, pid: u32) -> Result<Handle, MemoryError> {
+    let h_snap = Handle(unsafe { CreateToolhelp32Snapshot(flags, pid) }?);
+    if h_snap.is_valid() { Ok(h_snap) } else { Err(MemoryError::CreateSnapshotFailure) }
 }
 
-pub fn process32first(h_snap: &Handle, pe32: LPPROCESSENTRY32W) -> bool {
-    unsafe { Process32FirstW(**h_snap, pe32) != 0 }
+pub fn process32first(h_snap: &Handle, pe32: &mut PROCESSENTRY32W) -> bool {
+    unsafe { Process32FirstW(h_snap.0, pe32).is_ok() }
 }
-pub fn process32next(h_snap: &Handle, pe32: LPPROCESSENTRY32W) -> bool {
-    unsafe { Process32NextW(**h_snap, pe32) != 0 }
+pub fn process32next(h_snap: &Handle, pe32: &mut PROCESSENTRY32W) -> bool {
+    unsafe { Process32NextW(h_snap.0, pe32).is_ok() }
 }
 
-pub fn module32first(h_snap: &Handle, me32: LPMODULEENTRY32W) -> bool {
-    unsafe { Module32FirstW(**h_snap, me32) != 0 }
+pub fn module32first(h_snap: &Handle, me32: &mut MODULEENTRY32W) -> bool {
+    unsafe { Module32FirstW(h_snap.0, me32).is_ok() }
 }
-pub fn module32next(h_snap: &Handle, me32: LPMODULEENTRY32W) -> bool {
-    unsafe { Module32NextW(**h_snap, me32) != 0 }
+pub fn module32next(h_snap: &Handle, me32: &mut MODULEENTRY32W) -> bool {
+    unsafe { Module32NextW(h_snap.0, me32).is_ok() }
 }
