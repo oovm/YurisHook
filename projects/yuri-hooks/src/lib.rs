@@ -12,7 +12,7 @@ mod errors;
 // mod game_strings;
 
 use std::{iter::from_coroutine, ops::Coroutine, os::windows::ffi::OsStringExt, pin::Pin};
-use win_memory::Process;
+use win_memory::WindowsProcess;
 use windows::{
     Win32::{
         Foundation::{CloseHandle, HANDLE},
@@ -149,10 +149,4 @@ unsafe fn get_process_by_name(name: &str) -> windows::core::Result<PROCESSENTRY3
         }
     }
     Err(Error::new(HRESULT::default(), "Couldn't find process name"))
-}
-
-#[test]
-fn test() {
-    let win = Process::with_name("gamemd.exe").unwrap();
-    println!("{:#?}", win);
 }

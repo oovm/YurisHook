@@ -31,7 +31,14 @@ pub struct Module {
 }
 
 impl Module {
-    pub fn new(mname: String, mpath: String, pid: u32, mbaseaddr: usize, mbasesize: usize, proc: &crate::Process) -> Self {
+    pub fn new(
+        mname: String,
+        mpath: String,
+        pid: u32,
+        mbaseaddr: usize,
+        mbasesize: usize,
+        proc: &crate::WindowsProcess,
+    ) -> Self {
         Module {
             module_name: mname,
             module_path: mpath,

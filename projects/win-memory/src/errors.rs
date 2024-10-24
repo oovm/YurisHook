@@ -13,7 +13,9 @@ pub enum MemoryError {
     /// Module was not found in the snapshot of the modules
     ModuleNotFound,
     /// Could not get a HANDLE to read/write the process memory
-    GetHandleError,
+    GetHandleError {
+        win32: Error,
+    },
     /// Could not terminate the process
     TerminateProcessError,
     /// Could not read the process memory

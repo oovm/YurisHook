@@ -1,5 +1,4 @@
 #![cfg(windows)]
-#![deny(unsafe_op_in_unsafe_fn)]
 
 //! ProcMem is a minimalistic rust library for dealing with processes, their modules and threads utilizing the winapi.
 //! (therefore solely targeting windows systems)
@@ -15,8 +14,8 @@
 //! # Example: get a running process
 //!
 //! In order to get a running process you will have to
-//! call [`Process::with_name()`], [`Process::with_pid()`] or [`Process::all_with_name()`].
-//! On success the returned value will be of type: [`Process`].
+//! call [`WindowsProcess::with_name()`], [`WindowsProcess::with_pid()`] or [`WindowsProcess::all_with_name()`].
+//! On success the returned value will be of type: [`WindowsProcess`].
 //!
 //! ```rust
 //! use proc_mem::Process;
@@ -36,7 +35,7 @@
 //! # Example: get a module from a process
 //!
 //! To get a module which was loaded by a process
-//! you just have to call [`Process::module()`].
+//! you just have to call [`WindowsProcess::module()`].
 //! which on success will return an instance of [`Module`](crate::process::Module).
 //!
 //! ```rust
@@ -47,7 +46,7 @@
 //!
 //! # Example: read/write memory
 //!
-//! To read memory you have to call [`Process::read_mem()`].
+//! To read memory you have to call [`WindowsProcess::read_mem()`].
 //! This function takes a type and the address to read.
 //! On success the read value will be returned.
 //!
@@ -58,7 +57,7 @@
 //! let read_value: Result<T, ProcMemError> = chrome.read_mem::<T>(module.base_address() + 0x1337);
 //! ```
 //!
-//! To write memory you have to call [`Process::write_mem()`].
+//! To write memory you have to call [`WindowsProcess::write_mem()`].
 //! This function takes a type and the address to write to.
 //! the returned boolean will be true on success and false on failure
 //!
@@ -69,7 +68,7 @@
 //! let write_result: bool = chrome.read_mem::<T>(module.base_address() + 0x1337);
 //! ```
 //!
-//! There is also a function to read pointer chains [`Process::read_mem_chain()`].
+//! There is also a function to read pointer chains [`WindowsProcess::read_mem_chain()`].
 //! This function takes a type and a Vec of addresses/offsets,
 //! the first entry being the base address to start from.
 //! On success the read value will be returned.
@@ -83,7 +82,7 @@
 //! ```
 //!
 //! If you dont want to read the value from the end of the chain
-//! you can use the function: [`Process::read_ptr_chain()`].
+//! you can use the function: [`WindowsProcess::read_ptr_chain()`].
 //! This function takes a Vec of addresses/offsets,
 //! the first entry being the base address to start from.
 //! On success the address at the end of the chain will be returned.
@@ -125,4 +124,4 @@ mod errors;
 mod process;
 
 pub use errors::MemoryError;
-pub use process::{Module, Process, Signature};
+pub use process::{Module, Signature, WindowsProcess};
