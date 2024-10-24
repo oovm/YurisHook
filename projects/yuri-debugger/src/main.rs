@@ -24,6 +24,17 @@ fn main() -> Result<(), YuriError> {
         Ok(o) => Ok(o),
         Err(_) => Err(YuriErrorKind::GameNotFound),
     }?;
+
+    injected_payload.get_local_procedure_address()
+
+
+
+
+
+
+
+
+
     syringe.eject(injected_payload).unwrap();
     Ok(())
     // let my_function: extern "fastcall" fn() -> i32 =
