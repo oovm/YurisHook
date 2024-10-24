@@ -6,5 +6,6 @@ fn main() {
     let here = std::env::current_exe().unwrap();
     let dll = here.parent().unwrap().join("gamemdx.dll");
     let injected_payload = syringe.inject(dll).unwrap();
+
     syringe.eject(injected_payload).unwrap();
 }

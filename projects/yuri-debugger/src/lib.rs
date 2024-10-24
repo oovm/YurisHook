@@ -3,17 +3,3 @@
 #![doc = include_str!("../readme.md")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/oovm/shape-rs/dev/projects/images/Trapezohedron.svg")]
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/oovm/shape-rs/dev/projects/images/Trapezohedron.svg")]
-
-mod errors;
-// mod game_strings;
-
-pub use crate::errors::{ExampleError, ExampleErrorKind, Result};
-
-#[ctor::ctor]
-fn ctor() {
-    println!("我是一个dll");
-
-    let get_land_type_from_name: extern "C" fn(name: &str) -> i32 = unsafe { std::mem::transmute(0x48DF80 as *const ()) };
-    let out = (get_land_type_from_name)("test");
-    println!("{:?}", out);
-}
