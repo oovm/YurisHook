@@ -74,17 +74,17 @@ pub struct GameOptions {
 impl GameOptions {
     pub fn current(pid: &WindowsProcess) -> std::result::Result<GameOptions, YuriError> {
         Ok(GameOptions {
-            bases: pid.read_data_absolute(0xA8B258)?,
-            bridge_destruction: pid.read_data_absolute(0xA8B260)?,
-            crates: pid.read_data_absolute(0xA8B261)?,
-            short_game: pid.read_data_absolute(0xA8B262)?,
-            sw_allowed: pid.read_data_absolute(0xA8B263)?,
-            multi_engineer: pid.read_data_absolute(0xA8B26C)?,
-            allies_allowed: pid.read_data_absolute(0xA8B31C)?,
-            harvester_truce: pid.read_data_absolute(0xA8B31D)?,
-            ctf: pid.read_data_absolute(0xA8B31E)?,
-            fow: pid.read_data_absolute(0xA8B31F)?,
-            mcv_redeploy: pid.read_data_absolute(0xA8B320)?,
+            bases: pid.read_data(0xA8B258)?,
+            bridge_destruction: pid.read_data(0xA8B260)?,
+            crates: pid.read_data(0xA8B261)?,
+            short_game: pid.read_data(0xA8B262)?,
+            sw_allowed: pid.read_data(0xA8B263)?,
+            multi_engineer: pid.read_data(0xA8B26C)?,
+            allies_allowed: pid.read_data(0xA8B31C)?,
+            harvester_truce: pid.read_data(0xA8B31D)?,
+            ctf: pid.read_data(0xA8B31E)?,
+            fow: pid.read_data(0xA8B31F)?,
+            mcv_redeploy: pid.read_data(0xA8B320)?,
         })
     }
 }

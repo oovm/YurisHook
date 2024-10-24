@@ -19,25 +19,34 @@ pub struct PowerUpCrate {
 }
 
 struct PowerUpsTranspose {
-    weights: Vec<u32>,
-    arguments: Vec<f64>,
-    naval: Vec<bool>,
-    animation: Vec<i32>,
+    weights: [u32; 19],
+    arguments: [f64; 19],
+    naval: [bool; 19],
+    animation: [i32; 19],
 }
 
 impl PowerUpsTranspose {
     pub fn read(pid: &WindowsProcess) -> YuriResult<Self> {
-        let weights = pid.read_data_absolute::<[u32; 19]>(0x81DA8C)?;
-        let arguments = pid.read_data_absolute::<[f64; 19]>(0x89EC28)?;
-        let naval = pid.read_data_absolute::<[bool; 19]>(0x89ECC0)?;
-        let anims = pid.read_data_absolute::<[i32; 19]>(0x81DAD8)?;
+        Ok(Self {
+            weights: pid.read_data(0x81DA8C)?,
+            arguments: pid.read_data(0x89EC28)?,
+            naval: pid.read_data(0x89ECC0)?,
+            animation: pid.read_data(0x81DAD8)?,
+        })
+    }
+    pub fn write(&self, pid: &mut WindowsProcess) {
+        pid.write_data(0x81DA8C, self.weights);
+        pid.write_data(0x89EC28, self.arguments);
+        pid.write_data(0x89ECC0, self.naval);
+        pid.write_data(0x81DAD8, self.animation);
     }
     pub fn transpose(self) -> YuriResult<PowerUps> {
-        let configs = weights
+        let configs = self
+            .weights
             .iter()
-            .zip(arguments.iter())
-            .zip(naval.iter())
-            .zip(anims.iter())
+            .zip(self.arguments.iter())
+            .zip(self.naval.iter())
+            .zip(self.animation.iter())
             .map(|(((weight, arguments), naval), anim)| PowerUpCrate {
                 weight: *weight,
                 arguments: *arguments,
@@ -45,16 +54,16 @@ impl PowerUpsTranspose {
                 animation: *anim,
             })
             .collect::<Vec<_>>();
-        Ok(Self { configs })
+        Ok(PowerUps { configs })
     }
 }
 
 impl PowerUps {
     pub fn read(pid: &WindowsProcess) -> YuriResult<Self> {
-        let weights = pid.read_data_absolute::<[u32; 19]>(0x81DA8C)?;
-        let arguments = pid.read_data_absolute::<[f64; 19]>(0x89EC28)?;
-        let naval = pid.read_data_absolute::<[bool; 19]>(0x89ECC0)?;
-        let anims = pid.read_data_absolute::<[i32; 19]>(0x81DAD8)?;
+        let weights = pid.read_data::<[u32; 19]>(0x81DA8C)?;
+        let arguments = pid.read_data::<[f64; 19]>(0x89EC28)?;
+        let naval = pid.read_data::<[bool; 19]>(0x89ECC0)?;
+        let anims = pid.read_data::<[i32; 19]>(0x81DAD8)?;
         let configs = weights
             .iter()
             .zip(arguments.iter())
@@ -69,6 +78,7 @@ impl PowerUps {
             .collect::<Vec<_>>();
         Ok(Self { configs })
     }
+
     pub fn write(&self, pid: &WindowsProcess) -> YuriResult<()> {
         let weights = self.configs.iter().map(|c| c.weight).collect::<Vec<_>>().try_into()?;
     }

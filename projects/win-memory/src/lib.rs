@@ -46,7 +46,7 @@
 //!
 //! # Example: read/write memory
 //!
-//! To read memory you have to call [`WindowsProcess::read_data_absolute()`].
+//! To read memory you have to call [`WindowsProcess::read_data()`].
 //! This function takes a type and the address to read.
 //! On success the read value will be returned.
 //!

@@ -218,10 +218,9 @@ impl WindowsProcess {
     /// use win_memory::{MemoryError, Module, WindowsProcess};
     /// let chrome = WindowsProcess::with_name("chrome.exe")?;
     /// let module = chrome.module("kernel32.dll")?;
-    /// let read_value: Result<T, MemoryError> =
-    ///     chrome.read_data_absolute::<T>(module.base_address() + 0x1337);
+    /// let read_value: Result<T, MemoryError> = chrome.read_data::<T>(module.base_address() + 0x1337);
     /// ```
-    pub fn read_data_absolute<T: Default>(&self, offset: usize) -> Result<T, MemoryError> {
+    pub fn read_data<T: Default>(&self, offset: usize) -> Result<T, MemoryError> {
         let mut out: T = Default::default();
         unsafe {
             ReadProcessMemory(
@@ -233,10 +232,6 @@ impl WindowsProcess {
             )?;
         }
         Ok(out)
-    }
-
-    pub fn read_data<T: Default>(&self, offset: usize) -> Result<T, MemoryError> {
-        self.read_data_absolute(self.base_address + offset)
     }
 
     /// This function takes a type and a Vec of addresses/offsets,
@@ -254,15 +249,11 @@ impl WindowsProcess {
 
         while chain.len() != 1 {
             address += chain.remove(0);
-            address = if self.is_wow64 {
-                self.read_data_absolute::<u32>(address)? as usize
-            }
-            else {
-                self.read_data_absolute::<u64>(address)? as usize
-            }
+            address =
+                if self.is_wow64 { self.read_data::<u32>(address)? as usize } else { self.read_data::<u64>(address)? as usize }
         }
 
-        let ret = self.read_data_absolute::<T>(address + chain.remove(0))?;
+        let ret = self.read_data::<T>(address + chain.remove(0))?;
 
         return Ok(ret);
     }
@@ -282,12 +273,8 @@ impl WindowsProcess {
 
         while chain.len() != 1 {
             address += chain.remove(0);
-            address = if self.is_wow64 {
-                self.read_data_absolute::<u32>(address)? as usize
-            }
-            else {
-                self.read_data_absolute::<u64>(address)? as usize
-            }
+            address =
+                if self.is_wow64 { self.read_data::<u32>(address)? as usize } else { self.read_data::<u64>(address)? as usize }
         }
 
         return Ok(address + chain.remove(0));
@@ -300,18 +287,12 @@ impl WindowsProcess {
     /// let chrome = WindowsProcess::with_name("chrome.exe")?;
     /// let module = chrome.module("kernel32.dll")?;
     /// let mut value_to_write: i32 = 1337;
-    /// let write_result: bool = chrome.write_data(module.base_address() + 0x1337, value_to_write);
+    /// let write_result = chrome.write_data(module.base_address() + 0x1337, value_to_write);
     /// ```
     pub fn write_data<T: Default>(&self, address: usize, mut value: T) -> bool {
         unsafe {
-            WriteProcessMemory(
-                self.handle.wrap,
-                address as *mut _,
-                &mut value as *mut T as *mut _,
-                std::mem::size_of::<T>(),
-                None,
-            )
-            .is_ok()
+            WriteProcessMemory(self.handle.wrap, address as *mut _, &mut value as *mut T as *mut _, size_of::<T>(), None)
+                .is_ok()
         }
     }
 
