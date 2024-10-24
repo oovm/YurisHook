@@ -10,6 +10,8 @@
 
 mod errors;
 // mod game_strings;
+use crate::crate_hooks::PowerUps;
+use win_memory::WindowsProcess;
 use windows::{
     Win32::{
         Foundation::{CloseHandle, HANDLE},
@@ -27,9 +29,65 @@ use windows::{
 };
 // use std::arch::asm;
 // use std::ffi::{c_char, CString};
-pub use crate::errors::{Result, YuriError, YuriErrorKind};
+pub use crate::errors::{YuriError, YuriErrorKind, YuriResult};
 
+mod crate_hooks;
 mod map_hooks;
+
+pub struct YuriGameManager {
+    pid: WindowsProcess,
+}
+
+impl YuriGameManager {
+    pub fn new() -> std::result::Result<YuriGameManager, YuriError> {
+        Ok(Self { pid: WindowsProcess::with_name("gamemd.exe")? })
+    }
+
+    pub fn game_options(&self) -> std::result::Result<GameOptions, YuriError> {
+        GameOptions::current(&self.pid)
+    }
+
+    pub fn power_ups(&self) -> std::result::Result<PowerUps, YuriError> {
+        PowerUps::read(&self.pid)
+    }
+
+    pub fn set_move_feedback(&mut self, value: bool) -> bool {
+        self.pid.write_data::<bool>(0x822CF2, value)
+    }
+}
+
+#[derive(Debug)]
+pub struct GameOptions {
+    pub bases: bool,
+    pub bridge_destruction: bool,
+    pub crates: bool,
+    pub short_game: bool,
+    pub sw_allowed: bool,
+    pub multi_engineer: bool,
+    pub allies_allowed: bool,
+    pub harvester_truce: bool,
+    pub ctf: bool,
+    pub fow: bool,
+    pub mcv_redeploy: bool,
+}
+
+impl GameOptions {
+    pub fn current(pid: &WindowsProcess) -> std::result::Result<GameOptions, YuriError> {
+        Ok(GameOptions {
+            bases: pid.read_data_absolute(0xA8B258)?,
+            bridge_destruction: pid.read_data_absolute(0xA8B260)?,
+            crates: pid.read_data_absolute(0xA8B261)?,
+            short_game: pid.read_data_absolute(0xA8B262)?,
+            sw_allowed: pid.read_data_absolute(0xA8B263)?,
+            multi_engineer: pid.read_data_absolute(0xA8B26C)?,
+            allies_allowed: pid.read_data_absolute(0xA8B31C)?,
+            harvester_truce: pid.read_data_absolute(0xA8B31D)?,
+            ctf: pid.read_data_absolute(0xA8B31E)?,
+            fow: pid.read_data_absolute(0xA8B31F)?,
+            mcv_redeploy: pid.read_data_absolute(0xA8B320)?,
+        })
+    }
+}
 
 // #[used]
 // #[link_section = ".CRT$XCU"]

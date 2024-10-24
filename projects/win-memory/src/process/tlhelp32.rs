@@ -9,7 +9,6 @@ use windows::Win32::{
 };
 
 /// Wrappers around tl32help functions to work a little cleaner
-
 pub fn create_pe32() -> PROCESSENTRY32W {
     PROCESSENTRY32W {
         dwSize: size_of::<PROCESSENTRY32W>() as u32,
@@ -47,13 +46,13 @@ pub fn create_snapshot(flags: CREATE_TOOLHELP_SNAPSHOT_FLAGS, pid: u32) -> Resul
 pub fn process_first(h_snap: &Handle, pe32: &mut PROCESSENTRY32W) -> Result<(), MemoryError> {
     unsafe { Process32FirstW(h_snap.wrap, pe32).map_err(|e| MemoryError::IterateSnapshotFailure { win32: e }) }
 }
-pub fn process32next(h_snap: &Handle, pe32: &mut PROCESSENTRY32W) -> bool {
+pub fn process_next(h_snap: &Handle, pe32: &mut PROCESSENTRY32W) -> bool {
     unsafe { Process32NextW(h_snap.wrap, pe32).is_ok() }
 }
 
-pub fn module32first(h_snap: &Handle, me32: &mut MODULEENTRY32W) -> Result<(), MemoryError> {
+pub fn module_first(h_snap: &Handle, me32: &mut MODULEENTRY32W) -> Result<(), MemoryError> {
     unsafe { Module32FirstW(h_snap.wrap, me32).map_err(|e| MemoryError::IterateSnapshotFailure { win32: e }) }
 }
-pub fn module32next(h_snap: &Handle, me32: &mut MODULEENTRY32W) -> bool {
+pub fn module_next(h_snap: &Handle, me32: &mut MODULEENTRY32W) -> bool {
     unsafe { Module32NextW(h_snap.wrap, me32).is_ok() }
 }

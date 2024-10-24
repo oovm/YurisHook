@@ -1,8 +1,9 @@
 use win_memory::WindowsProcess;
+use yuri_hooks::{YuriError, YuriGameManager};
 
 fn main() {
-    let win = WindowsProcess::with_name("gamemd.exe").unwrap();
-    println!("{:#?}", win);
-    let ShortGame = win.read_data::<i8>(0xA8B262);
-    println!("ShortGame: {:#?}", ShortGame);
+    let mut win = YuriGameManager::new().unwrap();
+    println!("{:#?}", win.game_options().unwrap());
+    println!("{:#?}", win.power_ups().unwrap());
+    win.set_move_feedback(true);
 }

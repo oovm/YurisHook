@@ -68,7 +68,7 @@ impl WindowsProcess {
                 return Ok(proc);
             }
 
-            if !process32next(&h_snap, &mut pe32) {
+            if !process_next(&h_snap, &mut pe32) {
                 break;
             }
         }
@@ -82,9 +82,9 @@ impl WindowsProcess {
     /// let process: Result<WindowsProcess, MemoryError> = WindowsProcess::with_name("process.exe");
     /// ```
     pub fn with_name(name: &str) -> Result<Self, MemoryError> {
-        let h_snap = create_snapshot(TH32CS_SNAPPROCESS, 0).unwrap();
+        let h_snap = create_snapshot(TH32CS_SNAPPROCESS, 0)?;
         let mut pe32 = create_pe32();
-        process_first(&h_snap, &mut pe32).unwrap();
+        process_first(&h_snap, &mut pe32)?;
 
         loop {
             let process_name = String::from_utf16_lossy(&pe32.szExeFile).trim_end_matches('\u{0}').to_string();
@@ -93,17 +93,17 @@ impl WindowsProcess {
                     name: String::from(&process_name),
                     pid: pe32.th32ProcessID,
                     base_address: 0,
-                    handle: unsafe { Handle::read_write(pe32.th32ProcessID).unwrap() },
+                    handle: unsafe { Handle::read_write(pe32.th32ProcessID)? },
                     is_wow64: false,
                 };
 
-                proc.base_address = proc.module(&process_name).unwrap().base_address();
+                proc.base_address = proc.module(&process_name)?.base_address();
                 proc.is_wow64 = proc.is_wow64();
 
                 return Ok(proc);
             }
 
-            if !process32next(&h_snap, &mut pe32) {
+            if !process_next(&h_snap, &mut pe32) {
                 break;
             }
         }
@@ -140,7 +140,7 @@ impl WindowsProcess {
                 results.push(proc);
             }
 
-            if !process32next(&h_snap, &mut pe32) {
+            if !process_next(&h_snap, &mut pe32) {
                 break;
             }
         }
@@ -162,7 +162,7 @@ impl WindowsProcess {
         let h_snap = create_snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, *self.pid())?;
 
         let mut me32 = create_me32();
-        module32first(&h_snap, &mut me32)?;
+        module_first(&h_snap, &mut me32)?;
 
         loop {
             let module_name = String::from_utf16_lossy(&me32.szModule).trim_end_matches('\u{0}').to_string();
@@ -179,7 +179,7 @@ impl WindowsProcess {
                 ));
             }
 
-            if !module32next(&h_snap, &mut me32) {
+            if !module_next(&h_snap, &mut me32) {
                 break;
             }
         }
@@ -300,9 +300,9 @@ impl WindowsProcess {
     /// let chrome = WindowsProcess::with_name("chrome.exe")?;
     /// let module = chrome.module("kernel32.dll")?;
     /// let mut value_to_write: i32 = 1337;
-    /// let write_result: bool = chrome.write_mem(module.base_address() + 0x1337, value_to_write);
+    /// let write_result: bool = chrome.write_data(module.base_address() + 0x1337, value_to_write);
     /// ```
-    pub fn write_mem<T: Default>(&self, address: usize, mut value: T) -> bool {
+    pub fn write_data<T: Default>(&self, address: usize, mut value: T) -> bool {
         unsafe {
             WriteProcessMemory(
                 self.handle.wrap,

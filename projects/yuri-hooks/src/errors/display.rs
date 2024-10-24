@@ -26,6 +26,9 @@ impl Display for YuriErrorKind {
             YuriErrorKind::GameNotStart => {
                 write!(f, "GameNotStart")
             }
+            YuriErrorKind::SystemError { win32 } => {
+                write!(f, "SystemError: {}", win32)
+            }
         }
     }
 }

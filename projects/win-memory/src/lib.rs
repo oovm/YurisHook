@@ -57,7 +57,7 @@
 //! let read_value: Result<T, ProcMemError> = chrome.read_mem::<T>(module.base_address() + 0x1337);
 //! ```
 //!
-//! To write memory you have to call [`WindowsProcess::write_mem()`].
+//! To write memory you have to call [`WindowsProcess::write_data()`].
 //! This function takes a type and the address to write to.
 //! the returned boolean will be true on success and false on failure
 //!
