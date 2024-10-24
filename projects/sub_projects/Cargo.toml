@@ -24,7 +24,6 @@ path = "src/main.rs"
 
 [dependencies]
 ctor = "0.2.8"
-sysinfo = "0.29.11"
 dll-syringe = "0.15.2"
 
 [dev-dependencies]
