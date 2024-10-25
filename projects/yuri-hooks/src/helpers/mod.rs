@@ -1,35 +1,25 @@
-use crate::crate_hooks::{PowerUpCrate, PowerUps};
-
-pub struct TransposeIndexer<'i, I> {
-    pub(crate) raw: &'i I,
-    pub(crate) now: usize,
-}
-
 pub trait TransposedArray {
     type Transposed;
     fn get_index(&self, index: usize) -> Option<Self::Transposed>;
 }
 
-impl<'i> IntoIterator for &'i PowerUps {
-    type Item = PowerUpCrate;
-    type IntoIter = TransposeIndexer<'i, PowerUps>;
+pub struct TransposeIndexer<I> {
+    raw: I,
+    now: usize,
+}
 
-    fn into_iter(self) -> Self::IntoIter {
-        TransposeIndexer { raw: self, now: 0 }
+impl<I: TransposedArray> Iterator for TransposeIndexer<I> {
+    type Item = I::Transposed;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let i = self.raw.get_index(self.now);
+        self.now += 1;
+        i
     }
 }
 
-impl<'i> Iterator for TransposeIndexer<'i, PowerUps> {
-    type Item = PowerUpCrate;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.now < crate::crate_hooks::POWER_UPS_LIMIT {
-            let i = self.raw.get_index(self.now);
-            self.now += 1;
-            Some(i)
-        }
-        else {
-            None
-        }
+impl<I: TransposedArray> TransposeIndexer<I> {
+    pub fn new(raw: I) -> TransposeIndexer<I> {
+        TransposeIndexer { raw, now: 0 }
     }
 }

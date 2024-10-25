@@ -124,4 +124,4 @@ mod errors;
 mod process;
 
 pub use errors::MemoryError;
-pub use process::{Module, Signature, WindowsProcess};
+pub use process::{Module, ProcessData, Signature, WindowsProcess};

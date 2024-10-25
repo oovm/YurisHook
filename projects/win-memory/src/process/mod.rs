@@ -19,9 +19,15 @@ use windows::Win32::{
     },
 };
 
-#[derive(Debug, Clone)]
+pub trait ProcessData {
+    fn read(pid: &WindowsProcess) -> Result<Self, MemoryError>
+    where
+        Self: Sized;
+    fn write(&self, pid: &mut WindowsProcess) -> Result<(), MemoryError>;
+}
 
 /// contains name, pid and handle of a process
+#[derive(Debug, Clone)]
 pub struct WindowsProcess {
     /// name of the process
     pub name: String,
@@ -289,11 +295,8 @@ impl WindowsProcess {
     /// let mut value_to_write: i32 = 1337;
     /// let write_result = chrome.write_data(module.base_address() + 0x1337, value_to_write);
     /// ```
-    pub fn write_data<T: Default>(&self, address: usize, mut value: T) -> bool {
-        unsafe {
-            WriteProcessMemory(self.handle.wrap, address as *mut _, &mut value as *mut T as *mut _, size_of::<T>(), None)
-                .is_ok()
-        }
+    pub fn write_data<T: Default>(&self, address: usize, mut value: T) -> windows::core::Result<()> {
+        unsafe { WriteProcessMemory(self.handle.wrap, address as *mut _, &mut value as *mut T as *mut _, size_of::<T>(), None) }
     }
 
     /// With this function someone can write multiple bytes to a specified address.
