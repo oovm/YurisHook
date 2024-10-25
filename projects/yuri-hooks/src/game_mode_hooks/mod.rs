@@ -24,26 +24,6 @@ pub struct Vector3D<T> {
     pub z: T,
 }
 
-#[repr(C)]
-#[derive(Copy, Clone, Debug, Default)]
-pub struct AISlotsStruct {
-    pub difficulties: [AiDifficulty; 8],
-    pub countries: [i32; 8],
-    pub colors: [i32; 8],
-    pub starts: [i32; 8],
-    pub allies: [i32; 8],
-}
-
-#[repr(i32)]
-#[derive(Copy, Clone, Debug, Default)]
-pub enum AiDifficulty {
-    Player = -1,
-    #[default]
-    Hard = 0,
-    Normal = 1,
-    Easy = 2,
-}
-
 #[derive(Copy, Clone, Debug)]
 pub struct GameModeOptions {
     raw: RAW_GameModeOptions,
@@ -69,7 +49,7 @@ struct RAW_GameModeOptions {
     pub unit_count: i32,
     pub ai_players: i32,
     pub ai_difficulty: i32,
-    pub ai_slots: AISlotsStruct,
+    pub ai_slots: RAW_AISlots,
     pub allies_allowed: bool,
     pub harvester_truce: bool,
     pub ctf: bool,

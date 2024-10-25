@@ -8,6 +8,7 @@
 #![doc(html_logo_url = "https://raw.githubusercontent.com/oovm/shape-rs/dev/projects/images/Trapezohedron.svg")]
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/oovm/shape-rs/dev/projects/images/Trapezohedron.svg")]
 
+pub mod ai_hooks;
 mod errors;
 mod game_mode_hooks;
 mod game_option_hooks;
